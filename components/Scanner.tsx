@@ -254,7 +254,7 @@ export default function Scanner() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brand">LUX<span>SCAN</span><small>AI</small></div>
+        <div className="brand"><div className="brand">ValuTime</div>
         <div className="status"><i /> AI ENGINE READY</div>
       </header>
 
