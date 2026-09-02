@@ -4,7 +4,7 @@
 // mai messe in cache: richiedono sempre la rete, dato che analizzano foto
 // diverse ogni volta.
 
-const CACHE_NAME = "luxscan-shell-v1";
+const CACHE_NAME = "luxscan-shell-v2";
 const APP_SHELL = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -36,18 +36,19 @@ self.addEventListener("fetch", (event) => {
   // Solo richieste GET hanno senso da mettere in cache.
   if (request.method !== "GET") return;
 
+  // Rete-prima: prova sempre a scaricare la versione più recente. Usa la
+  // cache SOLO come fallback se la rete non è disponibile (offline), così
+  // un nuovo deploy si vede subito invece di restare bloccati su una
+  // versione vecchia salvata in cache.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
