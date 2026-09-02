@@ -113,3 +113,4 @@ h1 em{font-style:italic;color:var(--accent);font-weight:600}
   .topbar{height:64px}
   .status{display:none}
 }
+.brand-subtitle{font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin:2px 0 0}
