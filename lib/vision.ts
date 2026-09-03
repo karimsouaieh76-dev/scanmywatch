@@ -91,7 +91,7 @@ export async function identifyWatch(
 
   const response = await client.messages.create({
     model: VISION_MODEL,
-    max_tokens: 500,
+    max_tokens: 900,
     system: SYSTEM_PROMPT,
     messages: [
       {
