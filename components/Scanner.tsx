@@ -39,6 +39,51 @@ function dataUrlFormat(dataUrl: string): "PNG" | "WEBP" | "JPEG" {
   return "JPEG";
 }
 
+/**
+ * Ridimensiona/ricomprime un'immagine nel browser prima dell'invio, per
+ * restare sotto il limite di 4,5MB per richiesta delle funzioni serverless
+ * di Vercel. Le foto scattate da smartphone spesso pesano 2-5MB l'una: con
+ * 3-4 foto si supera facilmente il limite senza questo passaggio.
+ */
+async function compressImage(
+  file: File,
+  maxDimension = 1800,
+  quality = 0.82
+): Promise<File> {
+  // File già piccoli: non serve comprimere, si risparmia tempo.
+  if (file.size < 400 * 1024) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    let { width, height } = bitmap;
+    if (width > maxDimension || height > maxDimension) {
+      const scale = maxDimension / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    return new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+      type: "image/jpeg",
+    });
+  } catch {
+    // Se la compressione fallisce per qualsiasi motivo, invia l'originale
+    // piuttosto che bloccare l'utente.
+    return file;
+  }
+}
+
 export default function Scanner() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -48,17 +93,30 @@ export default function Scanner() {
   const [shareCopied, setShareCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [processingPhotos, setProcessingPhotos] = useState(false);
 
-  function addPhotos(fileList: FileList | null) {
+  async function addPhotos(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
-    const newPhotos = Array.from(fileList)
-      .slice(0, Math.max(0, MAX_PHOTOS - photos.length))
-      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    const selected = Array.from(fileList).slice(
+      0,
+      Math.max(0, MAX_PHOTOS - photos.length)
+    );
 
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    setResult(null);
-    setError(null);
-    if (inputRef.current) inputRef.current.value = "";
+    setProcessingPhotos(true);
+    try {
+      const compressed = await Promise.all(selected.map((file) => compressImage(file)));
+      const newPhotos = compressed.map((file) => ({
+        file,
+        preview: URL.createObjectURL(file),
+      }));
+
+      setPhotos((prev) => [...prev, ...newPhotos]);
+      setResult(null);
+      setError(null);
+    } finally {
+      setProcessingPhotos(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   function removePhoto(index: number) {
@@ -326,15 +384,23 @@ export default function Scanner() {
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) => addPhotos(e.target.files)}
+            onChange={(e) => { addPhotos(e.target.files); }}
           />
 
           <div className="actions">
-            <button className="primary" onClick={() => inputRef.current?.click()} disabled={!canAddMore}>
-              {photos.length === 0 ? "SCEGLI FOTO →" : "AGGIUNGI ALTRA FOTO"}
+            <button
+              className="primary"
+              onClick={() => inputRef.current?.click()}
+              disabled={!canAddMore || processingPhotos}
+            >
+              {processingPhotos
+                ? "ELABORAZIONE FOTO…"
+                : photos.length === 0
+                ? "SCEGLI FOTO →"
+                : "AGGIUNGI ALTRA FOTO"}
             </button>
             {photos.length > 0 && (
-              <button className="secondary" onClick={scan} disabled={loading}>
+              <button className="secondary" onClick={scan} disabled={loading || processingPhotos}>
                 {loading ? "ANALISI IN CORSO…" : "ANALIZZA CON AI →"}
               </button>
             )}
