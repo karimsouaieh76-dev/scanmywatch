@@ -22,15 +22,47 @@ function buildShareText(result: ScanResult): string {
   return `${name}${ref} — ${value} — identificato con LUXSCAN AI`;
 }
 
-async function blobUrlToDataUrl(url: string): Promise<string> {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  async function scan() {
+    if (photos.length === 0) return;
+    setLoading(true);
+    setError(null);
+
+    let stage = "preparazione richiesta";
+    try {
+      const formData = new FormData();
+      photos.forEach((p) => formData.append("photos", p.file));
+
+      stage = "invio della richiesta al server";
+      const res = await fetch("/api/identify", { method: "POST", body: formData });
+
+      stage = "lettura della risposta del server";
+      const rawText = await res.text();
+
+      stage = "interpretazione della risposta (JSON)";
+      let data: unknown;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseErr) {
+        throw new Error(
+          `Risposta del server non valida (stato ${res.status}). Anteprima: ${rawText.slice(0, 200)}`
+        );
+      }
+
+      if (!res.ok) {
+        const errData = data as { error?: string };
+        throw new Error(errData?.error ?? `Analisi fallita (stato ${res.status}).`);
+      }
+
+      setResult(data as ScanResult);
+    } catch (err) {
+      const name = err instanceof Error ? err.name : "Errore";
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`[${stage}] ${name}: ${message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
 }
 
 function dataUrlFormat(dataUrl: string): "PNG" | "WEBP" | "JPEG" {
