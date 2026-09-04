@@ -350,4 +350,110 @@ export default function Scanner() {
 
         {error && !loading && (
           <div className="error-box">
-            <strong>Analisi non riuscita
+            <strong>Analisi non riuscita</strong>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {result && !loading && (
+          <section className="result">
+            <div className="result-head">
+              <div>
+                <p className="eyebrow">AI IDENTIFICATION</p>
+                <h2>{result.identification.brand} {result.identification.model}</h2>
+                <p className="ref">
+                  REF. <b>{result.identification.reference ?? "N/D"}</b>
+                </p>
+              </div>
+              <div className="confidence">
+                <b>{result.identification.confidence}%</b>
+                <span>CONFIDENCE</span>
+              </div>
+            </div>
+
+            {result.valuation.sampleSize > 0 ? (
+              <>
+                <div className="value-box">
+                  <span>VALORE DI MERCATO STIMATO</span>
+                  <strong>€ {formatEUR(result.valuation.value)}</strong>
+                  <small>
+                    Range € {formatEUR(result.valuation.min)} – €{" "}
+                    {formatEUR(result.valuation.max)} · basato su{" "}
+                    {result.valuation.sampleSize} comparabili
+                    {result.market.method === "mock" &&
+                      " (dati demo, non di mercato reale)"}
+                    {result.market.method === "web_search" &&
+                      " (stima da ricerca web, verificare prima di usarla come riferimento)"}
+                  </small>
+                </div>
+
+                <div className="grid">
+                  <div>
+                    <span>PREZZO ACQUISTO TARGET</span>
+                    <b>€ {formatEUR(result.valuation.buyTarget)}</b>
+                  </div>
+                  <div>
+                    <span>PREZZO VENDITA TARGET</span>
+                    <b>€ {formatEUR(result.valuation.sellTarget)}</b>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="value-box">
+                <span>VALORE DI MERCATO</span>
+                <strong>Non disponibile</strong>
+                <small>
+                  Nessun dato di mercato trovato per questa referenza.
+                  {!result.identification.reference &&
+                    " Prova ad aggiungere una foto del fondo cassa: la referenza è spesso incisa lì."}
+                </small>
+              </div>
+            )}
+
+            {result.identification.authenticity && (
+              <div
+                className={
+                  "authenticity-box " +
+                  (result.identification.authenticity.verdict === "clear" ? "clear" : "attention")
+                }
+              >
+                <span>CONTROLLO PRELIMINARE DI AUTENTICITÀ</span>
+                {result.identification.authenticity.verdict === "clear" ? (
+                  <strong>Nessun segnale sospetto rilevato</strong>
+                ) : (
+                  <>
+                    <strong>Segnali da verificare</strong>
+                    <ul>
+                      {result.identification.authenticity.signals.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <small>Non sostituisce una perizia fisica professionale.</small>
+              </div>
+            )}
+
+            {result.identification.notes && (
+              <p className="disclaimer">{result.identification.notes}</p>
+            )}
+            <p className="disclaimer">
+              Stima preliminare AI. Il valore finale dipende da condizioni, corredo,
+              autenticità e dati di mercato aggiornati.
+            </p>
+
+            <div className="result-actions">
+              <button type="button" className="chip-btn" onClick={shareResult}>
+                {shareCopied ? "Copiato negli appunti ✓" : "Condividi"}
+              </button>
+              <button type="button" className="chip-btn" onClick={exportPdf} disabled={pdfLoading}>
+                {pdfLoading ? "Generazione PDF…" : "Esporta PDF"}
+              </button>
+            </div>
+            {pdfError && <p className="disclaimer" style={{ color: "#E3A98F" }}>{pdfError}</p>}
+          </section>
+        )}
+      </section>
+    </main>
+  );
+}
