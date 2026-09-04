@@ -63,8 +63,6 @@ function buildShareText(result: ScanResult): string {
     }
   }
 
-}
-
 function dataUrlFormat(dataUrl: string): "PNG" | "WEBP" | "JPEG" {
   if (dataUrl.startsWith("data:image/png")) return "PNG";
   if (dataUrl.startsWith("data:image/webp")) return "WEBP";
