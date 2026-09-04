@@ -19,8 +19,52 @@ function buildShareText(result: ScanResult): string {
     valuation.sampleSize > 0
       ? `Valore stimato: € ${formatEUR(valuation.value)}`
       : "Valore di mercato non disponibile";
-  return `${name}${ref} — ${value} — identificato con LUXSCAN AI`;
+  return `${name}${ref} — ${value} — identificato con ValuTime`;
 }
+
+async function blobUrlToDataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataUrlFormat(dataUrl: string): "PNG" | "WEBP" | "JPEG" {
+  if (dataUrl.startsWith("data:image/png")) return "PNG";
+  if (dataUrl.startsWith("data:image/webp")) return "WEBP";
+  return "JPEG";
+}
+
+export default function Scanner() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ScanResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  function addPhotos(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const newPhotos = Array.from(fileList)
+      .slice(0, Math.max(0, MAX_PHOTOS - photos.length))
+      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+
+    setPhotos((prev) => [...prev, ...newPhotos]);
+    setResult(null);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setResult(null);
+  }
 
   async function scan() {
     if (photos.length === 0) return;
@@ -63,70 +107,13 @@ function buildShareText(result: ScanResult): string {
     }
   }
 
-function dataUrlFormat(dataUrl: string): "PNG" | "WEBP" | "JPEG" {
-  if (dataUrl.startsWith("data:image/png")) return "PNG";
-  if (dataUrl.startsWith("data:image/webp")) return "WEBP";
-  return "JPEG";
-}
-
-export default function Scanner() {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-
-  function addPhotos(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) return;
-    const newPhotos = Array.from(fileList)
-      .slice(0, Math.max(0, MAX_PHOTOS - photos.length))
-      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
-
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    setResult(null);
-    setError(null);
-    if (inputRef.current) inputRef.current.value = "";
-  }
-
-  function removePhoto(index: number) {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
-    setResult(null);
-  }
-
-  async function scan() {
-    if (photos.length === 0) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      photos.forEach((p) => formData.append("photos", p.file));
-
-      const res = await fetch("/api/identify", { method: "POST", body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error ?? "Analisi fallita.");
-      }
-
-      setResult(data as ScanResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore imprevisto durante l'analisi.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function shareResult() {
     if (!result) return;
     const text = buildShareText(result);
 
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: "LUXSCAN AI", text, url: window.location.href });
+        await navigator.share({ title: "ValuTime", text, url: window.location.href });
       } catch {
         // L'utente ha annullato la condivisione: nessun errore da mostrare.
       }
@@ -158,7 +145,7 @@ export default function Scanner() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
-      doc.text("LUXSCAN AI — Scheda di valutazione", margin, y);
+      doc.text("ValuTime — Scheda di valutazione", margin, y);
       y += 6;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -270,7 +257,7 @@ export default function Scanner() {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
-      doc.save(`luxscan-${fileSlug || "scheda"}.pdf`);
+      doc.save(`valutime-${fileSlug || "scheda"}.pdf`);
     } catch (err) {
       setPdfError("Generazione PDF non riuscita. Riprova.");
       console.error("[exportPdf]", err);
@@ -284,7 +271,7 @@ export default function Scanner() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brand">LUX<span>SCAN</span><small>AI</small></div>
+        <div className="brand">ValuTime</div>
         <div className="status"><i /> AI ENGINE READY</div>
       </header>
 
@@ -293,7 +280,7 @@ export default function Scanner() {
         <h1>Identifica.<br /><em>Valuta.</em> Decidi.</h1>
         <p className="sub">
           Fotografa un orologio (anche più foto: quadrante e fondo cassa) e
-          LUXSCAN AI analizzerà modello, referenza e valore di mercato.
+          ValuTime analizzerà modello, referenza e valore di mercato.
         </p>
 
         <div className="scanner-card">
@@ -363,110 +350,4 @@ export default function Scanner() {
 
         {error && !loading && (
           <div className="error-box">
-            <strong>Analisi non riuscita</strong>
-            <span>{error}</span>
-          </div>
-        )}
-
-        {result && !loading && (
-          <section className="result">
-            <div className="result-head">
-              <div>
-                <p className="eyebrow">AI IDENTIFICATION</p>
-                <h2>{result.identification.brand} {result.identification.model}</h2>
-                <p className="ref">
-                  REF. <b>{result.identification.reference ?? "N/D"}</b>
-                </p>
-              </div>
-              <div className="confidence">
-                <b>{result.identification.confidence}%</b>
-                <span>CONFIDENCE</span>
-              </div>
-            </div>
-
-            {result.valuation.sampleSize > 0 ? (
-              <>
-                <div className="value-box">
-                  <span>VALORE DI MERCATO STIMATO</span>
-                  <strong>€ {formatEUR(result.valuation.value)}</strong>
-                  <small>
-                    Range € {formatEUR(result.valuation.min)} – €{" "}
-                    {formatEUR(result.valuation.max)} · basato su{" "}
-                    {result.valuation.sampleSize} comparabili
-                    {result.market.method === "mock" &&
-                      " (dati demo, non di mercato reale)"}
-                    {result.market.method === "web_search" &&
-                      " (stima da ricerca web, verificare prima di usarla come riferimento)"}
-                  </small>
-                </div>
-
-                <div className="grid">
-                  <div>
-                    <span>PREZZO ACQUISTO TARGET</span>
-                    <b>€ {formatEUR(result.valuation.buyTarget)}</b>
-                  </div>
-                  <div>
-                    <span>PREZZO VENDITA TARGET</span>
-                    <b>€ {formatEUR(result.valuation.sellTarget)}</b>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="value-box">
-                <span>VALORE DI MERCATO</span>
-                <strong>Non disponibile</strong>
-                <small>
-                  Nessun dato di mercato trovato per questa referenza.
-                  {!result.identification.reference &&
-                    " Prova ad aggiungere una foto del fondo cassa: la referenza è spesso incisa lì."}
-                </small>
-              </div>
-            )}
-
-            {result.identification.authenticity && (
-              <div
-                className={
-                  "authenticity-box " +
-                  (result.identification.authenticity.verdict === "clear" ? "clear" : "attention")
-                }
-              >
-                <span>CONTROLLO PRELIMINARE DI AUTENTICITÀ</span>
-                {result.identification.authenticity.verdict === "clear" ? (
-                  <strong>Nessun segnale sospetto rilevato</strong>
-                ) : (
-                  <>
-                    <strong>Segnali da verificare</strong>
-                    <ul>
-                      {result.identification.authenticity.signals.map((s, i) => (
-                        <li key={i}>{s}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <small>Non sostituisce una perizia fisica professionale.</small>
-              </div>
-            )}
-
-            {result.identification.notes && (
-              <p className="disclaimer">{result.identification.notes}</p>
-            )}
-            <p className="disclaimer">
-              Stima preliminare AI. Il valore finale dipende da condizioni, corredo,
-              autenticità e dati di mercato aggiornati.
-            </p>
-
-            <div className="result-actions">
-              <button type="button" className="chip-btn" onClick={shareResult}>
-                {shareCopied ? "Copiato negli appunti ✓" : "Condividi"}
-              </button>
-              <button type="button" className="chip-btn" onClick={exportPdf} disabled={pdfLoading}>
-                {pdfLoading ? "Generazione PDF…" : "Esporta PDF"}
-              </button>
-            </div>
-            {pdfError && <p className="disclaimer" style={{ color: "#E3A98F" }}>{pdfError}</p>}
-          </section>
-        )}
-      </section>
-    </main>
-  );
-}
+            <strong>Analisi non riuscita
