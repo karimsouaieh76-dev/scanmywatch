@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { MAX_DEVICES } from "@/lib/limits";
 import type { User } from "@supabase/supabase-js";
@@ -41,6 +41,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const [deviceLimitReached, setDeviceLimitReached] = useState(false);
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [checkingDevice, setCheckingDevice] = useState(false);
+
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -114,6 +121,57 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     });
   }
 
+  function friendlyAuthError(message: string): string {
+    if (message.includes("Invalid login credentials")) {
+      return "Email o password non corrette.";
+    }
+    if (message.includes("User already registered")) {
+      return "Esiste già un account con questa email. Prova ad accedere.";
+    }
+    if (message.includes("Password should be at least")) {
+      return "La password deve avere almeno 6 caratteri.";
+    }
+    return message;
+  }
+
+  async function handleEmailSubmit(e: FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setFormMessage(null);
+    setFormLoading(true);
+
+    try {
+      if (authMode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        });
+        if (error) throw error;
+        setFormMessage("Ti abbiamo inviato un'email con il link per reimpostare la password.");
+        return;
+      }
+
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        });
+        if (error) throw error;
+        if (!data.session) {
+          setFormMessage("Controlla la tua email per confermare l'account prima di accedere.");
+        }
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (err) {
+      setFormError(err instanceof Error ? friendlyAuthError(err.message) : "Errore imprevisto.");
+    } finally {
+      setFormLoading(false);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
   }
@@ -143,6 +201,81 @@ export default function AuthGate({ children }: { children: ReactNode }) {
             <li>Valutazione di mercato con fonti reali</li>
             <li>Storico delle tue scansioni</li>
           </ul>
+
+          {authMode !== "forgot" && (
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={authMode === "signin" ? "active" : ""}
+                onClick={() => { setAuthMode("signin"); setFormError(null); setFormMessage(null); }}
+              >
+                Accedi
+              </button>
+              <button
+                type="button"
+                className={authMode === "signup" ? "active" : ""}
+                onClick={() => { setAuthMode("signup"); setFormError(null); setFormMessage(null); }}
+              >
+                Registrati
+              </button>
+            </div>
+          )}
+
+          <form className="auth-form" onSubmit={handleEmailSubmit}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="auth-input"
+            />
+            {authMode !== "forgot" && (
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="auth-input"
+              />
+            )}
+
+            {formError && <p className="form-error">{formError}</p>}
+            {formMessage && <p className="form-message">{formMessage}</p>}
+
+            <button type="submit" className="primary" disabled={formLoading} style={{ width: "100%" }}>
+              {formLoading
+                ? "ATTENDI…"
+                : authMode === "signin"
+                ? "ACCEDI"
+                : authMode === "signup"
+                ? "CREA ACCOUNT"
+                : "INVIA LINK DI RECUPERO"}
+            </button>
+
+            {authMode === "signin" && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => { setAuthMode("forgot"); setFormError(null); setFormMessage(null); }}
+              >
+                Password dimenticata?
+              </button>
+            )}
+            {authMode === "forgot" && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => { setAuthMode("signin"); setFormError(null); setFormMessage(null); }}
+              >
+                ← Torna al login
+              </button>
+            )}
+          </form>
+
+          <div className="auth-divider"><span>oppure</span></div>
 
           <button className="google-btn" onClick={signInWithGoogle}>
             <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
