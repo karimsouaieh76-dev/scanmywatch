@@ -94,6 +94,12 @@ export default function Scanner() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [processingPhotos, setProcessingPhotos] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editBrand, setEditBrand] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editReference, setEditReference] = useState("");
+  const [revaluing, setRevaluing] = useState(false);
+  const [revalueError, setRevalueError] = useState<string | null>(null);
 
   async function addPhotos(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -162,6 +168,57 @@ export default function Scanner() {
       setError(`[${stage}] ${name}: ${message}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function startEdit() {
+    if (!result) return;
+    setEditBrand(result.identification.brand);
+    setEditModel(result.identification.model);
+    setEditReference(result.identification.reference ?? "");
+    setRevalueError(null);
+    setEditMode(true);
+  }
+
+  async function saveManualEdit() {
+    if (!result) return;
+    if (!editBrand.trim() || !editModel.trim()) {
+      setRevalueError("Marca e modello sono obbligatori.");
+      return;
+    }
+    setRevaluing(true);
+    setRevalueError(null);
+
+    try {
+      const res = await fetch("/api/revalue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: editBrand.trim(),
+          model: editModel.trim(),
+          reference: editReference.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Aggiornamento non riuscito.");
+
+      setResult((prev) =>
+        prev
+          ? {
+              identification: {
+                ...data.identification,
+                authenticity: prev.identification.authenticity,
+              },
+              market: data.market,
+              valuation: data.valuation,
+            }
+          : prev
+      );
+      setEditMode(false);
+    } catch (err) {
+      setRevalueError(err instanceof Error ? err.message : "Errore imprevisto.");
+    } finally {
+      setRevaluing(false);
     }
   }
 
@@ -424,17 +481,63 @@ export default function Scanner() {
         {result && !loading && (
           <section className="result">
             <div className="result-head">
-              <div>
+              <div style={{ flex: 1 }}>
                 <p className="eyebrow">AI IDENTIFICATION</p>
-                <h2>{result.identification.brand} {result.identification.model}</h2>
-                <p className="ref">
-                  REF. <b>{result.identification.reference ?? "N/D"}</b>
-                </p>
+                {editMode ? (
+                  <div className="edit-fields">
+                    <input
+                      className="auth-input"
+                      placeholder="Marca"
+                      value={editBrand}
+                      onChange={(e) => setEditBrand(e.target.value)}
+                    />
+                    <input
+                      className="auth-input"
+                      placeholder="Modello"
+                      value={editModel}
+                      onChange={(e) => setEditModel(e.target.value)}
+                    />
+                    <input
+                      className="auth-input"
+                      placeholder="Referenza (opzionale)"
+                      value={editReference}
+                      onChange={(e) => setEditReference(e.target.value)}
+                    />
+                    {revalueError && <p className="form-error">{revalueError}</p>}
+                    <div className="result-actions" style={{ marginTop: 4 }}>
+                      <button
+                        type="button"
+                        className="chip-btn"
+                        onClick={() => setEditMode(false)}
+                        disabled={revaluing}
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        type="button"
+                        className="chip-btn"
+                        onClick={saveManualEdit}
+                        disabled={revaluing}
+                      >
+                        {revaluing ? "Aggiornamento…" : "Salva e aggiorna valore"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h2>{result.identification.brand} {result.identification.model}</h2>
+                    <p className="ref">
+                      REF. <b>{result.identification.reference ?? "N/D"}</b>
+                    </p>
+                  </>
+                )}
               </div>
-              <div className="confidence">
-                <b>{result.identification.confidence}%</b>
-                <span>CONFIDENCE</span>
-              </div>
+              {!editMode && (
+                <div className="confidence">
+                  <b>{result.identification.confidence}%</b>
+                  <span>CONFIDENCE</span>
+                </div>
+              )}
             </div>
 
             {result.valuation.sampleSize > 0 ? (
@@ -509,10 +612,15 @@ export default function Scanner() {
             </p>
 
             <div className="result-actions">
-              <button type="button" className="chip-btn" onClick={shareResult}>
+              {!editMode && (
+                <button type="button" className="chip-btn" onClick={startEdit}>
+                  Modifica dati
+                </button>
+              )}
+              <button type="button" className="chip-btn" onClick={shareResult} disabled={editMode}>
                 {shareCopied ? "Copiato negli appunti ✓" : "Condividi"}
               </button>
-              <button type="button" className="chip-btn" onClick={exportPdf} disabled={pdfLoading}>
+              <button type="button" className="chip-btn" onClick={exportPdf} disabled={pdfLoading || editMode}>
                 {pdfLoading ? "Generazione PDF…" : "Esporta PDF"}
               </button>
             </div>
