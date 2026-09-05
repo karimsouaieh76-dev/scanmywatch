@@ -386,7 +386,7 @@ export default function Scanner() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div className="brand">ValuTime</div>
+        <img src="/logo.png" alt="ValuTime" className="brand-logo" />
         <div className="status"><i /> AI ENGINE READY</div>
       </header>
 

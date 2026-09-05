@@ -188,9 +188,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <div className="brand" style={{ justifyContent: "center", display: "flex" }}>
-            ValuTime
-          </div>
+          <img src="/logo.png" alt="ValuTime" className="brand-logo-large" />
           <p className="brand-subtitle">VALUTAZIONE OROLOGI</p>
           <p className="sub" style={{ margin: "14px 0 24px" }}>
             Accedi per identificare e valutare i tuoi orologi.
