@@ -3,7 +3,7 @@ import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 export const metadata: Metadata = {
-  title: "LUXSCAN AI",
+  title: "ValuTime",
   description: "AI watch identification and valuation platform",
   manifest: "/manifest.json",
   icons: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "LUXSCAN",
+    title: "VALUTIME",
   },
 };
 
