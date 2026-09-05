@@ -1,6 +1,6 @@
 {
-  "name": "LUXSCAN AI",
-  "short_name": "LUXSCAN",
+  "name": "ValuTime",
+  "short_name": "ValuTime",
   "description": "AI watch identification and valuation platform",
   "start_url": "/",
   "display": "standalone",
