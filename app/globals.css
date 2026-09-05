@@ -1,6 +1,6 @@
 :root{
   --bg:#F4E9D6;
-  --paper:#FFFBF3; 
+  --paper:#FFFBF3;
   --sapphire:#1B3A5C;
   --sapphire-deep:#122A44;
   --sapphire-text:#F3E8D2;
@@ -24,6 +24,8 @@ button{font:inherit}
 .brand{font-family:var(--font-display);font-size:23px;letter-spacing:2px;font-weight:600;color:var(--text)}
 .brand span{font-weight:400;color:var(--text)}
 .brand small{color:var(--accent);font-family:var(--font-body);font-size:10px;letter-spacing:2px;margin-left:6px;font-weight:700}
+.brand-logo{height:26px;width:auto;display:block}
+.brand-logo-large{height:48px;width:auto;display:block;margin:0 auto}
 .status{font-family:var(--font-mono);font-size:10px;letter-spacing:1px;color:var(--muted)}
 .status i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#6B8F5E;margin-right:7px}
 .hero{max-width:780px;margin:70px auto 0;text-align:center}
