@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { ScanResult } from "@/lib/types";
 
 const MAX_PHOTOS = 4;
+const MAX_RAW_FILE_MB = 25; // oltre questa soglia rifiutiamo prima ancora di provare a comprimere
 
 type Photo = { file: File; preview: string };
 
@@ -94,6 +95,7 @@ export default function Scanner() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [processingPhotos, setProcessingPhotos] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editBrand, setEditBrand] = useState("");
   const [editModel, setEditModel] = useState("");
@@ -103,14 +105,40 @@ export default function Scanner() {
 
   async function addPhotos(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
-    const selected = Array.from(fileList).slice(
-      0,
-      Math.max(0, MAX_PHOTOS - photos.length)
-    );
+    const allSelected = Array.from(fileList);
+    const remainingSlots = Math.max(0, MAX_PHOTOS - photos.length);
+
+    const accepted: File[] = [];
+    const problems: string[] = [];
+
+    allSelected.forEach((file) => {
+      if (accepted.length >= remainingSlots) return;
+      if (!file.type.startsWith("image/")) {
+        problems.push(`"${file.name}" non è un'immagine.`);
+        return;
+      }
+      const sizeMB = file.size / (1024 * 1024);
+      if (sizeMB > MAX_RAW_FILE_MB) {
+        problems.push(`"${file.name}" è troppo pesante (${sizeMB.toFixed(0)} MB, massimo ${MAX_RAW_FILE_MB} MB).`);
+        return;
+      }
+      accepted.push(file);
+    });
+
+    if (allSelected.length > remainingSlots + problems.length) {
+      problems.push(`Puoi avere al massimo ${MAX_PHOTOS} foto: alcune sono state ignorate.`);
+    }
+
+    setPhotoError(problems.length > 0 ? problems.join(" ") : null);
+
+    if (accepted.length === 0) {
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
 
     setProcessingPhotos(true);
     try {
-      const compressed = await Promise.all(selected.map((file) => compressImage(file)));
+      const compressed = await Promise.all(accepted.map((file) => compressImage(file)));
       const newPhotos = compressed.map((file) => ({
         file,
         preview: URL.createObjectURL(file),
@@ -434,6 +462,8 @@ export default function Scanner() {
               )}
             </div>
           )}
+
+          {photoError && <p className="photo-error">{photoError}</p>}
 
           <input
             ref={inputRef}
