@@ -115,6 +115,7 @@ h1 em{font-style:italic;color:var(--accent);font-weight:600}
 .auth-input::placeholder{color:var(--sapphire-muted)}
 .auth-input:focus{outline:none;border-bottom-color:var(--accent-light)}
 .form-error{color:#F3A98F;font-size:12px;margin:0;text-align:left}
+.photo-error{color:#8A3A22;font-size:13px;background:rgba(138,58,34,.08);border:1px solid rgba(138,58,34,.25);border-radius:10px;padding:11px 14px;margin:14px 0 0}
 .form-message{color:#B9D8A8;font-size:12px;margin:0;text-align:left}
 .link-btn{background:none;border:0;color:var(--accent-light);font-size:12px;font-weight:600;cursor:pointer;padding:4px;font-family:var(--font-body)}
 .auth-divider{display:flex;align-items:center;gap:10px;margin:22px 0;color:var(--sapphire-muted);font-size:11px}
