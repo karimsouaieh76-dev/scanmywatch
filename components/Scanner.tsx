@@ -415,6 +415,29 @@ export default function Scanner() {
         y += 4;
       }
 
+      if (result.identification.warranty) {
+        const w = result.identification.warranty;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("Garanzia rilevata", margin, y);
+        y += 7;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        if (w.retailer) {
+          doc.text(`Rivenditore: ${w.retailer}`, margin, y);
+          y += 6;
+        }
+        if (w.purchaseDate) {
+          doc.text(`Data acquisto: ${w.purchaseDate}`, margin, y);
+          y += 6;
+        }
+        if (w.serialNumber) {
+          doc.text(`Numero di serie: ${w.serialNumber}`, margin, y);
+          y += 6;
+        }
+        y += 4;
+      }
+
       doc.setFontSize(8);
       doc.setTextColor(130);
       const disclaimer = doc.splitTextToSize(
@@ -459,7 +482,7 @@ export default function Scanner() {
               <div className="empty">
                 <div className="camera">⌾</div>
                 <strong>Inserisci una o più fotografie</strong>
-                <span>Quadrante, fondo cassa, bracciale — da fotocamera o galleria</span>
+                <span>Quadrante, fondo cassa, bracciale, garanzia — da fotocamera o galleria</span>
               </div>
             </div>
           ) : (
@@ -674,6 +697,23 @@ export default function Scanner() {
                   </>
                 )}
                 <small>Non sostituisce una perizia fisica professionale.</small>
+              </div>
+            )}
+
+            {result.identification.warranty && (
+              <div className="authenticity-box clear">
+                <span>GARANZIA RILEVATA</span>
+                <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0" }}>
+                  {result.identification.warranty.retailer && (
+                    <li>Rivenditore: {result.identification.warranty.retailer}</li>
+                  )}
+                  {result.identification.warranty.purchaseDate && (
+                    <li>Data acquisto: {result.identification.warranty.purchaseDate}</li>
+                  )}
+                  {result.identification.warranty.serialNumber && (
+                    <li>Numero di serie: {result.identification.warranty.serialNumber}</li>
+                  )}
+                </ul>
               </div>
             )}
 
