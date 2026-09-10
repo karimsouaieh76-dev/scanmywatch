@@ -1,10 +1,188 @@
-import Scanner from "@/components/Scanner";
-import AuthGate from "@/components/AuthGate";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { ScanResult } from "@/lib/types";
+
+type ScanRow = {
+  id: string;
+  created_at: string;
+  brand: string;
+  model: string;
+  reference: string | null;
+  confidence: number;
+  value_estimate: number | null;
+  market_method: "provider" | "web_search" | "mock";
+  result: ScanResult;
+};
+
+function formatEUR(n: number): string {
+  return n.toLocaleString("it-IT");
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("it-IT", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const METHOD_LABEL: Record<ScanRow["market_method"], string> = {
+  provider: "Fonte dati",
+  web_search: "Ricerca web",
+  mock: "Demo",
+};
+
+export default function StoricoPage() {
+  const supabase = createClient();
+  const [scans, setScans] = useState<ScanRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (active) setError("Devi effettuare l'accesso per vedere lo storico.");
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
+        .from("scans")
+        .select("id, created_at, brand, model, reference, confidence, value_estimate, market_method, result")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (!active) return;
+
+      if (fetchError) {
+        setError("Impossibile caricare lo storico. Riprova.");
+        return;
+      }
+      setScans((data as ScanRow[]) ?? []);
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <AuthGate>
-      <Scanner />
-    </AuthGate>
+    <main className="shell">
+      <header className="topbar">
+        <img src="/logo.png" alt="ValuTime" className="brand-logo" />
+      </header>
+
+      <section className="hero" style={{ paddingTop: 32 }}>
+        <p className="eyebrow">LE TUE SCANSIONI</p>
+        <h1 style={{ fontSize: 30 }}>Storico</h1>
+        <p className="sub" style={{ marginTop: 8 }}>
+          Le ultime {scans?.length ?? "…"} analisi salvate sul tuo account.
+        </p>
+
+        <a href="/" className="chip-btn" style={{ display: "inline-block", textDecoration: "none", marginTop: 18, width: "auto", padding: "10px 18px" }}>
+          ← Nuova scansione
+        </a>
+
+        {error && (
+          <div className="error-box" style={{ marginTop: 24 }}>
+            <strong>Attenzione</strong>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!error && scans === null && (
+          <div className="loading" style={{ marginTop: 32 }}>
+            <div className="loader" />
+            <div>
+              <strong>Caricamento storico</strong>
+              <span>Un attimo…</span>
+            </div>
+          </div>
+        )}
+
+        {!error && scans !== null && scans.length === 0 && (
+          <div className="value-box" style={{ marginTop: 32 }}>
+            <span>NESSUNA SCANSIONE ANCORA</span>
+            <strong style={{ fontSize: 18 }}>Il tuo storico è vuoto</strong>
+            <small>Le prossime analisi che farai compariranno qui.</small>
+          </div>
+        )}
+
+        {!error && scans !== null && scans.length > 0 && (
+          <div className="history-list">
+            {scans.map((scan) => {
+              const isOpen = expandedId === scan.id;
+              const dial = scan.result?.identification?.dialDescription;
+              return (
+                <div className="history-card" key={scan.id}>
+                  <button
+                    type="button"
+                    className="history-card-head"
+                    onClick={() => setExpandedId(isOpen ? null : scan.id)}
+                  >
+                    <div>
+                      <strong>{scan.brand} {scan.model}</strong>
+                      <span className="history-meta">
+                        {scan.reference ? `Ref. ${scan.reference}` : "Referenza N/D"}
+                        {dial ? ` · ${dial}` : ""}
+                      </span>
+                      <span className="history-date">{formatDate(scan.created_at)}</span>
+                    </div>
+                    <div className="history-value">
+                      {scan.value_estimate ? (
+                        <strong>€ {formatEUR(scan.value_estimate)}</strong>
+                      ) : (
+                        <strong className="history-nd">N/D</strong>
+                      )}
+                      <span>{METHOD_LABEL[scan.market_method]}</span>
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="history-detail">
+                      <div className="history-detail-row">
+                        <span>Confidence identificazione</span>
+                        <b>{scan.confidence}%</b>
+                      </div>
+                      {scan.result?.valuation?.sampleSize > 0 && (
+                        <div className="history-detail-row">
+                          <span>Range di mercato</span>
+                          <b>
+                            € {formatEUR(scan.result.valuation.min)} – €{" "}
+                            {formatEUR(scan.result.valuation.max)}
+                          </b>
+                        </div>
+                      )}
+                      {scan.result?.identification?.authenticity && (
+                        <div className="history-detail-row">
+                          <span>Autenticità</span>
+                          <b>
+                            {scan.result.identification.authenticity.verdict === "clear"
+                              ? "Nessun segnale"
+                              : `${scan.result.identification.authenticity.signals.length} segnali da verificare`}
+                          </b>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
