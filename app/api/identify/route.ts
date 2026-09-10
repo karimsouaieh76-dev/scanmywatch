@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { identifyWatch, type WatchImage } from "@/lib/vision";
 import { getMarketData } from "@/lib/marketData";
 import { computeValuation } from "@/lib/valuation";
@@ -10,6 +11,7 @@ export const runtime = "nodejs";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB per immagine
 const MAX_IMAGES = 4;
+const CACHE_HOURS = 6;
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -75,21 +77,48 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const images: WatchImage[] = await Promise.all(
-      files.map(async (file) => {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        return {
-          base64: buffer.toString("base64"),
-          mediaType: file.type as WatchImage["mediaType"],
-        };
-      })
-    );
+    const buffers = await Promise.all(files.map((file) => file.arrayBuffer()));
 
-    const identification = await identifyWatch(images);
-    const market = await getMarketData(identification);
-    const valuation = computeValuation(market);
+    // Hash combinato di tutte le foto (nell'ordine caricato) — stessa foto,
+    // stesso hash, così possiamo riusare un risultato recente invece di
+    // rifare identificazione + ricerca di mercato da capo.
+    const hash = createHash("sha256");
+    for (const buf of buffers) hash.update(Buffer.from(buf));
+    const photoHash = hash.digest("hex");
 
-    const result: ScanResult = { identification, market, valuation };
+    const cacheThreshold = new Date(Date.now() - CACHE_HOURS * 60 * 60 * 1000).toISOString();
+    const { data: cached } = await supabase
+      .from("scan_cache")
+      .select("result")
+      .eq("photo_hash", photoHash)
+      .gt("created_at", cacheThreshold)
+      .maybeSingle();
+
+    let result: ScanResult;
+
+    if (cached?.result) {
+      result = cached.result as ScanResult;
+    } else {
+      const images: WatchImage[] = buffers.map((buf, i) => ({
+        base64: Buffer.from(buf).toString("base64"),
+        mediaType: files[i].type as WatchImage["mediaType"],
+      }));
+
+      const identification = await identifyWatch(images);
+      const market = await getMarketData(identification);
+      const valuation = computeValuation(market);
+      result = { identification, market, valuation };
+
+      // Salva in cache — non blocca la risposta se fallisce.
+      const { error: cacheError } = await supabase
+        .from("scan_cache")
+        .upsert({ photo_hash: photoHash, result }, { onConflict: "photo_hash" });
+      if (cacheError) {
+        console.error("[/api/identify] salvataggio cache fallito:", cacheError);
+      }
+    }
+
+    const { identification, market, valuation } = result;
 
     // Salva nello storico — non blocca la risposta se fallisce.
     const { error: insertError } = await supabase.from("scans").insert({
