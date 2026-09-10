@@ -87,6 +87,93 @@ export default function StoricoPage() {
   const [scans, setScans] = useState<ScanRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  async function exportScansToPDF(scans: ScanRow[]) {
+    setPdfLoading(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 16;
+      let y = 20;
+
+      function drawHeader() {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("ValuTime — Storico scansioni", margin, y);
+        y += 6;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text(
+          `Esportato il ${new Date().toLocaleString("it-IT")} — ${scans.length} scansioni`,
+          margin,
+          y
+        );
+        doc.setTextColor(0);
+        y += 10;
+        doc.setDrawColor(210);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 8;
+      }
+
+      drawHeader();
+
+      for (const scan of scans) {
+        const dial = scan.result?.identification?.dialDescription;
+        const blockHeight = dial ? 24 : 20;
+
+        if (y + blockHeight > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+          drawHeader();
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(`${scan.brand} ${scan.model}`, margin, y);
+        y += 5.5;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(90);
+        doc.text(
+          `Rif. ${scan.reference ?? "N/D"}${dial ? ` · Quadrante: ${dial}` : ""}`,
+          margin,
+          y
+        );
+        y += 5;
+        doc.text(
+          `Confidence ${scan.confidence}% · ${
+            scan.value_estimate ? `Valore € ${scan.value_estimate.toLocaleString("it-IT")}` : "Valore N/D"
+          } · ${METHOD_LABEL[scan.market_method]} · ${new Date(scan.created_at).toLocaleDateString("it-IT")}`,
+          margin,
+          y
+        );
+        doc.setTextColor(0);
+        y += 6;
+        doc.setDrawColor(230);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 6;
+      }
+
+      doc.setFontSize(8);
+      doc.setTextColor(130);
+      const disclaimer = doc.splitTextToSize(
+        "Stime preliminari generate con intelligenza artificiale. Non sostituiscono una perizia professionale.",
+        pageWidth - margin * 2
+      );
+      doc.text(disclaimer, margin, pageHeight - 12);
+
+      doc.save(`valutime-storico-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error("[exportScansToPDF]", err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -149,6 +236,17 @@ export default function StoricoPage() {
               onClick={() => exportScansToCSV(scans)}
             >
               Esporta CSV
+            </button>
+          )}
+          {scans && scans.length > 0 && (
+            <button
+              type="button"
+              className="chip-btn"
+              style={{ width: "auto", padding: "10px 18px" }}
+              onClick={() => exportScansToPDF(scans)}
+              disabled={pdfLoading}
+            >
+              {pdfLoading ? "Generazione…" : "Esporta PDF"}
             </button>
           )}
         </div>
