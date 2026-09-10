@@ -70,7 +70,7 @@ export async function searchMarketComps(
   const client = new Anthropic({ apiKey });
 
   const dialNote = dialDescription
-    ? ` Quadrante: ${dialDescription} — cerca prezzi specifici per QUESTA variante di quadrante quando possibile, dato che referenze identiche possono avere valori molto diversi a seconda del quadrante.`
+    ? ` Quadrante: ${dialDescription}. Se trovi comparabili che specificano questo quadrante, danno una stima più precisa — ma includi comunque comparabili della stessa referenza anche se l'annuncio non specifica il colore del quadrante, piuttosto che restituire un array vuoto.`
     : "";
 
   try {
@@ -110,7 +110,12 @@ export async function searchMarketComps(
       }>;
     };
 
-    if (!parsed.comps || parsed.comps.length === 0) return null;
+    if (!parsed.comps || parsed.comps.length === 0) {
+      console.error(
+        `[marketSearch] nessun comparabile trovato per ${brand} ${model} ref. ${reference}`
+      );
+      return null;
+    }
 
     return parsed.comps
       .filter((c) => typeof c.price === "number" && c.price > 0)
