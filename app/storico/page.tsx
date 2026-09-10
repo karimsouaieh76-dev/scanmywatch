@@ -225,13 +225,13 @@ export default function StoricoPage() {
         </p>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
-          <a href="/" className="chip-btn" style={{ display: "inline-block", textDecoration: "none", width: "auto", padding: "10px 18px" }}>
+          <a href="/" className="chip-btn chip-btn-light" style={{ display: "inline-block", textDecoration: "none", width: "auto", padding: "10px 18px" }}>
             ← Nuova scansione
           </a>
           {scans && scans.length > 0 && (
             <button
               type="button"
-              className="chip-btn"
+              className="chip-btn chip-btn-light"
               style={{ width: "auto", padding: "10px 18px" }}
               onClick={() => exportScansToCSV(scans)}
             >
@@ -241,7 +241,7 @@ export default function StoricoPage() {
           {scans && scans.length > 0 && (
             <button
               type="button"
-              className="chip-btn"
+              className="chip-btn chip-btn-light"
               style={{ width: "auto", padding: "10px 18px" }}
               onClick={() => exportScansToPDF(scans)}
               disabled={pdfLoading}
