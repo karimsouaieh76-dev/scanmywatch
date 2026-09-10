@@ -303,7 +303,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
         <div className="auth-card">
           <img src="/logo.png" alt="ValuTime" className="brand-logo-large" style={{ marginBottom: 18 }} />
           <p className="eyebrow">LIMITE DISPOSITIVI RAGGIUNTO</p>
-          <strong style={{ display: "block", fontFamily: "var(--font-display)", fontSize: 19, marginBottom: 10, color: "var(--sap-text)" }}>
+          <strong style={{ display: "block", fontFamily: "var(--font-display)", fontSize: 19, marginBottom: 10, color: "var(--sapphire-text)" }}>
             Puoi usare ValuTime su massimo {MAX_DEVICES} dispositivi
           </strong>
           <p className="sub" style={{ margin: "0 0 18px", fontSize: 14 }}>
