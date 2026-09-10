@@ -100,6 +100,7 @@ export default function Scanner() {
   const [editBrand, setEditBrand] = useState("");
   const [editModel, setEditModel] = useState("");
   const [editReference, setEditReference] = useState("");
+  const [editDialDescription, setEditDialDescription] = useState("");
   const [revaluing, setRevaluing] = useState(false);
   const [revalueError, setRevalueError] = useState<string | null>(null);
 
@@ -204,6 +205,7 @@ export default function Scanner() {
     setEditBrand(result.identification.brand);
     setEditModel(result.identification.model);
     setEditReference(result.identification.reference ?? "");
+    setEditDialDescription(result.identification.dialDescription ?? "");
     setRevalueError(null);
     setEditMode(true);
   }
@@ -225,6 +227,7 @@ export default function Scanner() {
           brand: editBrand.trim(),
           model: editModel.trim(),
           reference: editReference.trim() || null,
+          dialDescription: editDialDescription.trim() || null,
         }),
       });
       const data = await res.json();
@@ -332,6 +335,10 @@ export default function Scanner() {
       doc.setFontSize(10);
       doc.text(`Referenza: ${result.identification.reference ?? "N/D"}`, margin, y);
       y += 6;
+      if (result.identification.dialDescription) {
+        doc.text(`Quadrante: ${result.identification.dialDescription}`, margin, y);
+        y += 6;
+      }
       doc.text(`Confidence identificazione: ${result.identification.confidence}%`, margin, y);
       y += 10;
 
@@ -533,6 +540,12 @@ export default function Scanner() {
                       value={editReference}
                       onChange={(e) => setEditReference(e.target.value)}
                     />
+                    <input
+                      className="auth-input"
+                      placeholder="Quadrante (es. nero, blu, panda...)"
+                      value={editDialDescription}
+                      onChange={(e) => setEditDialDescription(e.target.value)}
+                    />
                     {revalueError && <p className="form-error">{revalueError}</p>}
                     <div className="result-actions" style={{ marginTop: 4 }}>
                       <button
@@ -559,6 +572,11 @@ export default function Scanner() {
                     <p className="ref">
                       REF. <b>{result.identification.reference ?? "N/D"}</b>
                     </p>
+                    {result.identification.dialDescription && (
+                      <p className="ref">
+                        QUADRANTE <b>{result.identification.dialDescription}</b>
+                      </p>
+                    )}
                   </>
                 )}
               </div>
