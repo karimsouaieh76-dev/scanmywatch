@@ -61,12 +61,17 @@ function extractJsonObject(text: string): string {
 export async function searchMarketComps(
   brand: string,
   model: string,
-  reference: string
+  reference: string,
+  dialDescription?: string | null
 ): Promise<MarketComp[] | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
   const client = new Anthropic({ apiKey });
+
+  const dialNote = dialDescription
+    ? ` Quadrante: ${dialDescription} — cerca prezzi specifici per QUESTA variante di quadrante quando possibile, dato che referenze identiche possono avere valori molto diversi a seconda del quadrante.`
+    : "";
 
   try {
     const response = await client.messages.create({
@@ -83,7 +88,7 @@ export async function searchMarketComps(
       messages: [
         {
           role: "user",
-          content: `Orologio: ${brand} ${model}, referenza ${reference}. Cerca prezzi di mercato recenti e rispondi con il JSON richiesto.`,
+          content: `Orologio: ${brand} ${model}, referenza ${reference}.${dialNote} Cerca prezzi di mercato recenti e rispondi con il JSON richiesto.`,
         },
       ],
     });

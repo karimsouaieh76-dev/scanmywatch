@@ -12,6 +12,12 @@ export type Identification = {
   brand: string;
   model: string;
   reference: string | null;
+  /**
+   * Descrizione precisa del quadrante (colore, pattern, indici) — separata
+   * dal modello perché la stessa referenza può esistere in più varianti di
+   * quadrante con valori di mercato anche molto diversi tra loro.
+   */
+  dialDescription: string | null;
   /** 0-100, confidenza del modello vision sull'identificazione */
   confidence: number;
   /** Dettagli utili per QA / debug, non mostrati necessariamente in UI */

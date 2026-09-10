@@ -15,6 +15,18 @@ per identificare marca, modello e numero di referenza — il numero di
 referenza è spesso inciso sul fondo cassa, quindi se una delle foto lo
 mostra usalo come fonte primaria.
 
+ATTENZIONE PARTICOLARE AL QUADRANTE: la stessa referenza esiste spesso in
+più varianti di quadrante (colore, pattern, tipo di indici), con valori di
+mercato anche molto diversi tra loro — identificare solo marca/modello/
+referenza NON basta, il quadrante va descritto con precisione a parte.
+Il colore del quadrante nelle foto può essere ingannevole per via di luce,
+riflessi o bilanciamento del bianco della fotocamera (es. un quadrante nero
+può sembrare blu scuro in controluce, o viceversa): se non sei
+ragionevolmente sicuro del colore/pattern esatto, dillo esplicitamente in
+"dialDescription" (es. "quadrante scuro, colore non determinabile con
+certezza dalla foto — possibile nero o blu") invece di indicare un colore
+specifico a caso, e abbassa di conseguenza "confidence".
+
 Oltre all'identificazione, fai anche un controllo preliminare di alcuni
 segnali visivi comuni nelle contraffazioni (font e incisioni imprecise sul
 quadrante, proporzioni sbagliate della lente cyclops, finiture grossolane,
@@ -31,7 +43,8 @@ markdown, con questa forma esatta:
   "brand": string,
   "model": string,
   "reference": string | null,
-  "confidence": number,   // 0-100, quanto sei sicuro dell'identificazione
+  "dialDescription": string | null,  // colore, pattern e indici del quadrante, con eventuali dubbi espliciti
+  "confidence": number,   // 0-100, quanto sei sicuro dell'identificazione COMPLESSIVA (inclusa la variante di quadrante)
   "notes": string,        // breve nota su elementi usati per identificare (quadrante, lancette, bracciale, fondo cassa, ecc.) o su eventuali dubbi
   "authenticity": {
     "verdict": "clear" | "attention",
@@ -149,6 +162,8 @@ export async function identifyWatch(
     brand: candidate.brand,
     model: candidate.model,
     reference: candidate.reference ?? null,
+    dialDescription:
+      typeof candidate.dialDescription === "string" ? candidate.dialDescription : null,
     confidence: Math.max(0, Math.min(100, candidate.confidence)),
     notes: typeof candidate.notes === "string" ? candidate.notes : undefined,
     authenticity,

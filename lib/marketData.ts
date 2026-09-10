@@ -72,7 +72,8 @@ export async function getMarketData(
     const webComps = await searchMarketComps(
       identification.brand,
       identification.model,
-      reference
+      reference,
+      identification.dialDescription
     );
     if (webComps && webComps.length > 0) {
       return { reference, comps: webComps, live: true, method: "web_search" };
