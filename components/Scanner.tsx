@@ -103,6 +103,8 @@ export default function Scanner() {
   const [editDialDescription, setEditDialDescription] = useState("");
   const [revaluing, setRevaluing] = useState(false);
   const [revalueError, setRevalueError] = useState<string | null>(null);
+  const [loadingStage, setLoadingStage] = useState("Lettura delle fotografie…");
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   async function addPhotos(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -163,6 +165,21 @@ export default function Scanner() {
     if (photos.length === 0) return;
     setLoading(true);
     setError(null);
+    setLoadingStage("Lettura delle fotografie…");
+    setLoadingProgress(4);
+
+    const stageTimers = [
+      setTimeout(() => setLoadingStage("Identificazione di marca, modello e referenza…"), 3000),
+      setTimeout(() => setLoadingStage("Ricerca dei prezzi di mercato…"), 9000),
+      setTimeout(() => setLoadingStage("Quasi fatto…"), 16000),
+    ];
+
+    // Avanza in modo asintotico verso il 92% (mai il 100%, che arriva solo
+    // a richiesta davvero completata) — dà la sensazione di progresso reale
+    // senza promettere un tempo di completamento che non conosciamo.
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => (prev >= 92 ? 92 : prev + (92 - prev) * 0.08));
+    }, 350);
 
     let stage = "preparazione richiesta";
     try {
@@ -191,11 +208,14 @@ export default function Scanner() {
       }
 
       setResult(data as ScanResult);
+      setLoadingProgress(100);
     } catch (err) {
       const name = err instanceof Error ? err.name : "Errore";
       const message = err instanceof Error ? err.message : String(err);
       setError(`[${stage}] ${name}: ${message}`);
     } finally {
+      stageTimers.forEach(clearTimeout);
+      clearInterval(progressInterval);
       setLoading(false);
     }
   }
@@ -504,7 +524,13 @@ export default function Scanner() {
         {loading && (
           <div className="loading">
             <div className="loader" />
-            <div><strong>Analisi AI in corso</strong><span>Identificazione di marca, modello e referenza…</span></div>
+            <div style={{ flex: 1 }}>
+              <strong>Analisi AI in corso</strong>
+              <span>{loadingStage}</span>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${loadingProgress}%` }} />
+              </div>
+            </div>
           </div>
         )}
 
