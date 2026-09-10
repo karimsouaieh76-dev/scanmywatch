@@ -30,6 +30,52 @@ function formatDate(iso: string): string {
   });
 }
 
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function exportScansToCSV(scans: ScanRow[]) {
+  const headers = [
+    "Data",
+    "Marca",
+    "Modello",
+    "Referenza",
+    "Quadrante",
+    "Confidence %",
+    "Valore stimato EUR",
+    "Fonte dato",
+  ];
+
+  const rows = scans.map((scan) => [
+    new Date(scan.created_at).toLocaleString("it-IT"),
+    scan.brand,
+    scan.model,
+    scan.reference ?? "",
+    scan.result?.identification?.dialDescription ?? "",
+    String(scan.confidence),
+    scan.value_estimate != null ? String(scan.value_estimate) : "",
+    METHOD_LABEL[scan.market_method],
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map(csvEscape).join(","))
+    .join("\n");
+
+  // BOM per far riconoscere correttamente gli accenti a Excel
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `valutime-storico-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 const METHOD_LABEL: Record<ScanRow["market_method"], string> = {
   provider: "Fonte dati",
   web_search: "Ricerca web",
@@ -91,9 +137,21 @@ export default function StoricoPage() {
           Le ultime {scans?.length ?? "…"} analisi salvate sul tuo account.
         </p>
 
-        <a href="/" className="chip-btn" style={{ display: "inline-block", textDecoration: "none", marginTop: 18, width: "auto", padding: "10px 18px" }}>
-          ← Nuova scansione
-        </a>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
+          <a href="/" className="chip-btn" style={{ display: "inline-block", textDecoration: "none", width: "auto", padding: "10px 18px" }}>
+            ← Nuova scansione
+          </a>
+          {scans && scans.length > 0 && (
+            <button
+              type="button"
+              className="chip-btn"
+              style={{ width: "auto", padding: "10px 18px" }}
+              onClick={() => exportScansToCSV(scans)}
+            >
+              Esporta CSV
+            </button>
+          )}
+        </div>
 
         {error && (
           <div className="error-box" style={{ marginTop: 24 }}>
