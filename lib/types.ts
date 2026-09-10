@@ -8,6 +8,12 @@ export type AuthenticityCheck = {
   signals: string[];
 };
 
+export type WarrantyInfo = {
+  purchaseDate: string | null;
+  retailer: string | null;
+  serialNumber: string | null;
+};
+
 export type Identification = {
   brand: string;
   model: string;
@@ -24,6 +30,8 @@ export type Identification = {
   notes?: string;
   /** Controllo preliminare di autenticità — MAI un verdetto assoluto, solo segnali da verificare */
   authenticity?: AuthenticityCheck;
+  /** Dati letti da un certificato di garanzia, se una delle foto lo mostra — null altrimenti */
+  warranty?: WarrantyInfo | null;
 };
 
 export type MarketComp = {

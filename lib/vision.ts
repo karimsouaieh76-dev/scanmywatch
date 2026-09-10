@@ -37,6 +37,15 @@ anche l'occhio esperto in foto normali, e non esiste modo di confermare
 l'autenticità da fotografia. Se non noti nulla di sospetto, dillo
 chiaramente invece di forzare un segnale marginale.
 
+CERTIFICATO DI GARANZIA: se una delle foto mostra un certificato/booklet di
+garanzia (garanzia, warranty card), estrai — solo se leggibili con
+ragionevole certezza — data di acquisto, nome del rivenditore e numero di
+serie, in "warranty". Se nessuna foto mostra una garanzia, o i dati non sono
+leggibili, imposta "warranty" a null (o i singoli campi non leggibili a
+null). Se il numero di serie sulla garanzia è visibile anche sull'orologio
+(es. inciso tra le anse) e i due NON coincidono, trattalo come un segnale
+da aggiungere ad "authenticity".
+
 Rispondi SOLO con un oggetto JSON valido, senza testo aggiuntivo, backtick o
 markdown, con questa forma esatta:
 {
@@ -49,7 +58,12 @@ markdown, con questa forma esatta:
   "authenticity": {
     "verdict": "clear" | "attention",
     "signals": string[]  // segnali specifici notati, in italiano, vuoto se verdict è "clear"
-  }
+  },
+  "warranty": {
+    "purchaseDate": string | null,
+    "retailer": string | null,
+    "serialNumber": string | null
+  } | null
 }
 
 Se non riesci a identificare l'orologio con ragionevole certezza, imposta
@@ -137,6 +151,7 @@ export async function identifyWatch(
 
   const candidate = parsed as Partial<Identification> & {
     authenticity?: { verdict?: unknown; signals?: unknown };
+    warranty?: { purchaseDate?: unknown; retailer?: unknown; serialNumber?: unknown } | null;
   };
   if (
     typeof candidate.brand !== "string" ||
@@ -158,6 +173,21 @@ export async function identifyWatch(
         }
       : undefined;
 
+  const rawWarranty = candidate.warranty;
+  const warranty =
+    rawWarranty &&
+    (typeof rawWarranty.purchaseDate === "string" ||
+      typeof rawWarranty.retailer === "string" ||
+      typeof rawWarranty.serialNumber === "string")
+      ? {
+          purchaseDate:
+            typeof rawWarranty.purchaseDate === "string" ? rawWarranty.purchaseDate : null,
+          retailer: typeof rawWarranty.retailer === "string" ? rawWarranty.retailer : null,
+          serialNumber:
+            typeof rawWarranty.serialNumber === "string" ? rawWarranty.serialNumber : null,
+        }
+      : null;
+
   return {
     brand: candidate.brand,
     model: candidate.model,
@@ -166,6 +196,7 @@ export async function identifyWatch(
       typeof candidate.dialDescription === "string" ? candidate.dialDescription : null,
     confidence: Math.max(0, Math.min(100, candidate.confidence)),
     notes: typeof candidate.notes === "string" ? candidate.notes : undefined,
+    warranty,
     authenticity,
   };
 }
