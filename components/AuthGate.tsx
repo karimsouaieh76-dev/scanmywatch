@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { MAX_DEVICES } from "@/lib/limits";
 import type { User } from "@supabase/supabase-js";
@@ -334,9 +335,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <>
       <div className="user-bar">
         <span>{user.email}</span>
-        <a href="/storico" className="chip-btn" style={{ textDecoration: "none" }}>
+        <Link href="/storico" className="chip-btn" style={{ textDecoration: "none" }}>
           Storico
-        </a>
+        </Link>
         <button className="chip-btn" onClick={signOut}>Esci</button>
       </div>
       {children}
