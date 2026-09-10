@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Corpo della richiesta non valido." }, { status: 400 });
   }
 
-  const { brand, model, reference } = body as {
+  const { brand, model, reference, dialDescription: dialDescriptionInput } = body as {
     brand?: string;
     model?: string;
     reference?: string | null;
+    dialDescription?: string | null;
   };
 
   if (!brand || !model) {
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
       brand,
       model,
       reference: reference || null,
+      dialDescription: dialDescriptionInput || null,
       confidence: 100, // Correzione manuale: consideriamo il dato affidabile al 100%.
       notes: "Dati corretti manualmente dall'utente.",
     };
