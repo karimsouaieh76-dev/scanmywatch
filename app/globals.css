@@ -92,6 +92,8 @@ h1 em{font-style:italic;color:var(--accent);font-weight:600}
 
 .result-actions{display:flex;gap:10px;margin-top:22px}
 .chip-btn{flex:1;border:1px solid var(--sapphire-line);background:rgba(255,255,255,.04);color:var(--sapphire-text);border-radius:11px;padding:13px;font-size:11px;letter-spacing:1px;font-weight:600;cursor:pointer;font-family:var(--font-body)}
+.chip-btn-light{border-color:var(--line);color:var(--text);background:var(--paper)}
+.chip-btn-light:hover{background:#FBF4E6}
 .chip-btn:disabled{opacity:.55;cursor:default}
 .edit-fields{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 
