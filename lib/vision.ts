@@ -105,6 +105,7 @@ export async function identifyWatch(
   const response = await client.messages.create({
     model: VISION_MODEL,
     max_tokens: 900,
+    temperature: 0, // stessa foto → stessa identificazione, il più possibile
     system: SYSTEM_PROMPT,
     messages: [
       {
