@@ -53,6 +53,8 @@ h1 em{font-style:italic;color:var(--accent);font-weight:600}
 .secondary{background:var(--sapphire);color:var(--sapphire-text)}
 .secondary:disabled{opacity:.55}
 .loading{margin-top:20px;background:var(--paper);border:1px solid var(--line);padding:18px;border-radius:16px;display:flex;gap:14px;text-align:left;align-items:center}
+.progress-track{margin-top:10px;height:5px;background:var(--line);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent-light),var(--accent));border-radius:4px;transition:width .3s ease}
 .loading strong{font-family:var(--font-display);font-weight:600}
 .loading span{display:block;color:var(--muted);font-size:12px;margin-top:5px}
 .loader{width:24px;height:24px;border:2px solid #E6D6B8;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
