@@ -333,6 +333,9 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <>
       <div className="user-bar">
         <span>{user.email}</span>
+        <a href="/storico" className="chip-btn" style={{ textDecoration: "none" }}>
+          Storico
+        </a>
         <button className="chip-btn" onClick={signOut}>Esci</button>
       </div>
       {children}
