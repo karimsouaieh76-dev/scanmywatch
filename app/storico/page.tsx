@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { ScanResult } from "@/lib/types";
 
@@ -225,9 +226,9 @@ export default function StoricoPage() {
         </p>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
-          <a href="/" className="chip-btn chip-btn-light" style={{ display: "inline-block", textDecoration: "none", width: "auto", padding: "10px 18px" }}>
+          <Link href="/" className="chip-btn chip-btn-light" style={{ display: "inline-block", textDecoration: "none", width: "auto", padding: "10px 18px" }}>
             ← Nuova scansione
-          </a>
+          </Link>
           {scans && scans.length > 0 && (
             <button
               type="button"
