@@ -725,10 +725,7 @@ export default function Scanner() {
             {result.identification.notes && (
               <p className="disclaimer">{result.identification.notes}</p>
             )}
-            <p className="disclaimer">
-              Stima preliminare AI. Il valore finale dipende da condizioni, corredo,
-              autenticità e dati di mercato aggiornati.
-            </p>
+            
 
             <div className="result-actions">
               {!editMode && (
