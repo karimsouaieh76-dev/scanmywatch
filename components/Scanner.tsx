@@ -641,7 +641,7 @@ export default function Scanner() {
               <>
                 <div className="value-box">
                   <span>VALORE DI MERCATO STIMATO</span>
-                  <small style={{ display: "block", fontSize: 11, color: "var(--gold-light)", marginBottom: 6 }}>
+                  <small style={{ display: "block", fontSize: 11, color: "#D9B676", marginBottom: 6 }}>
   Stima preliminare AI. Il valore finale dipende da condizioni, corredo, autenticità e dati di mercato aggiornati.
 </small>
 
