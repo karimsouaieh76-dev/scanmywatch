@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react"; 
 import { createClient } from "@/lib/supabase/client";
 import { MAX_DEVICES } from "@/lib/limits";
 import type { User } from "@supabase/supabase-js";
